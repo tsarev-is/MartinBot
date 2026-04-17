@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,5 +6,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog.Web.AspNetCore" Version="6.1.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MartinBot.Domain\MartinBot.Domain.csproj" />
+    <ProjectReference Include="..\MartinBot.Integration\MartinBot.Integration.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\NLog.config">
+      <Link>NLog.config</Link>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MartinBot.Domain">
+      <HintPath>bin\Debug\net10.0\MartinBot.Domain.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 </Project>

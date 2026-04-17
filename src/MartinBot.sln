@@ -6,10 +6,18 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartinBot", "MartinBot\MartinBot.csproj", "{F51B1E01-3D3B-4677-AC05-D367E66E2932}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFolder", "SolutionFolder", "{69F262ED-B003-40AA-87A1-478FF50BF113}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+		NLog.config = NLog.config
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartinBot.Tests", "MartinBot.Tests\MartinBot.Tests.csproj", "{A590A297-63AC-4A20-9544-A33CC83FFDF3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartinBot.Domain", "MartinBot.Domain\MartinBot.Domain.csproj", "{653824C8-2DE9-4B13-A8E6-DD72766568B8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{EFD7D7E3-9187-48D1-9B59-0C0467585F34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MartinBot.Integration", "MartinBot.Integration\MartinBot.Integration.csproj", "{A1CEF205-8C9A-430A-87D7-B0FB9093F333}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,8 +65,23 @@ Global
 		{653824C8-2DE9-4B13-A8E6-DD72766568B8}.Release|x64.Build.0 = Release|Any CPU
 		{653824C8-2DE9-4B13-A8E6-DD72766568B8}.Release|x86.ActiveCfg = Release|Any CPU
 		{653824C8-2DE9-4B13-A8E6-DD72766568B8}.Release|x86.Build.0 = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|x64.Build.0 = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Debug|x86.Build.0 = Debug|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|x64.ActiveCfg = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|x64.Build.0 = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|x86.ActiveCfg = Release|Any CPU
+		{A1CEF205-8C9A-430A-87D7-B0FB9093F333}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EFD7D7E3-9187-48D1-9B59-0C0467585F34} = {69F262ED-B003-40AA-87A1-478FF50BF113}
 	EndGlobalSection
 EndGlobal
