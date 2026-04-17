@@ -7,6 +7,7 @@ using MartinBot.Domain;
 using MartinBot.Domain.Models;
 using MartinBot.Integration.Configuration;
 using MartinBot.Integration.Exceptions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace MartinBot.Integration;
@@ -15,17 +16,20 @@ public sealed class ExmoClient : IExmoService
 {
     private readonly HttpClient _http;
     private readonly ExmoOptions _options;
+    private readonly ILogger<ExmoClient> _logger;
     private long _nonce;
 
-    public ExmoClient(HttpClient http, IOptions<ExmoOptions> options)
+    public ExmoClient(HttpClient http, IOptions<ExmoOptions> options, ILogger<ExmoClient> logger)
     {
         _http = http;
         _options = options.Value;
+        _logger = logger;
         _nonce = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
     public async Task<Ticker> GetTickerAsync(string pair, CancellationToken ct = default)
     {
+        _logger.LogDebug($"EXMO ticker request for {pair}");
         using var doc = await GetPublicAsync("ticker", ct).ConfigureAwait(false);
         var root = doc.RootElement;
         if (!root.TryGetProperty(pair, out var node))
@@ -62,6 +66,7 @@ public sealed class ExmoClient : IExmoService
 
         using var doc = await PostPrivateAsync("order_create", parameters, ct).ConfigureAwait(false);
         var orderId = doc.RootElement.GetProperty("order_id").GetInt64();
+        _logger.LogInformation($"EXMO limit {side} order created: {orderId} {pair} {quantity.ToString(CultureInfo.InvariantCulture)}@{price.ToString(CultureInfo.InvariantCulture)}");
         return new CreatedOrder(orderId);
     }
 
@@ -72,6 +77,7 @@ public sealed class ExmoClient : IExmoService
             ["order_id"] = orderId.ToString(CultureInfo.InvariantCulture)
         };
         using var _ = await PostPrivateAsync("order_cancel", parameters, ct).ConfigureAwait(false);
+        _logger.LogInformation($"EXMO order cancelled: {orderId}");
     }
 
     public async Task<IReadOnlyList<OpenOrder>> GetOpenOrdersAsync(CancellationToken ct = default)
@@ -144,6 +150,7 @@ public sealed class ExmoClient : IExmoService
         {
             var error = root.TryGetProperty("error", out var e) ? e.GetString() : null;
             doc.Dispose();
+            _logger.LogWarning($"EXMO private call {method} returned error: {error}");
             throw new ExmoApiException(error ?? "Unknown EXMO error");
         }
 

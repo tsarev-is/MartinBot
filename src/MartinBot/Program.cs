@@ -1,4 +1,5 @@
 using MartinBot;
+using NLog.Web;
 
 public class Program
 {
@@ -20,13 +21,15 @@ public class Program
             NLog.LogManager.Shutdown();
         }
     }
-    
+
     public static IHostBuilder CreateHostBuilder(string[] args)
     {
         return Host.CreateDefaultBuilder(args)
+            .ConfigureLogging(logging => logging.ClearProviders())
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder
+                    .UseNLog()
                     .UseStartup<Startup>();
             });
     }
