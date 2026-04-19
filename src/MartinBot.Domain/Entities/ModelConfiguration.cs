@@ -22,4 +22,14 @@ public static class ModelConfiguration
         apiState.HasKey(s => s.Key);
         apiState.Property(s => s.Key).IsRequired();
     }
+
+    public static void ConfigureBacktestRun(ModelBuilder modelBuilder)
+    {
+        var run = modelBuilder.Entity<BacktestRunEntity>();
+        run.HasKey(r => r.Id);
+        run.Property(r => r.Id).ValueGeneratedOnAdd();
+        run.Property(r => r.Pair).IsRequired();
+        run.Property(r => r.Timeframe).IsRequired();
+        run.Property(r => r.StrategyName).IsRequired();
+    }
 }

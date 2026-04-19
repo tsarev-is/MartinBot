@@ -1,5 +1,7 @@
+using MartinBot.Backtesting;
 using MartinBot.Configuration;
 using MartinBot.Domain;
+using MartinBot.Domain.Backtesting;
 using MartinBot.Domain.Entities;
 using MartinBot.Integration;
 using MartinBot.Integration.Configuration;
@@ -22,6 +24,11 @@ public static class DomainOptions
             var options = sp.GetRequiredService<IOptions<ExmoOptions>>().Value;
             http.BaseAddress = new Uri(options.BaseUrl);
         });
+
+        services.AddSingleton<BacktestQueue>();
+        services.AddSingleton<BacktestStrategyFactory>();
+        services.AddScoped<BacktestEngine>();
+        services.AddHostedService<BacktestRunnerService>();
 
         return services;
     }

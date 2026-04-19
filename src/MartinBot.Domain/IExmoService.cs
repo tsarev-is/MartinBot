@@ -1,3 +1,4 @@
+using MartinBot.Domain.Backtesting.Models;
 using MartinBot.Domain.Models;
 
 namespace MartinBot.Domain;
@@ -8,6 +9,14 @@ public interface IExmoService
     /// Retrieves the latest ticker (best bid, best ask, last trade) for the specified trading pair.
     /// </summary>
     Task<Ticker> GetTickerAsync(string pair, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns historical OHLCV candles for the specified pair and resolution.
+    /// Public endpoint — no authentication required. <paramref name="resolution"/> follows
+    /// EXMO values (e.g. "1", "5", "15", "30", "45", "60", "120", "180", "240", "D", "W", "M").
+    /// </summary>
+    Task<IReadOnlyList<Candle>> GetCandlesHistoryAsync(string pair, string resolution,
+        DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default);
 
     /// <summary>
     /// Returns the authenticated user's available balances keyed by currency code.

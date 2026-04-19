@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MartinBot.Domain;
+using MartinBot.Domain.Backtesting.Models;
 using MartinBot.Domain.Models;
 using MartinBot.Integration.Configuration;
 using MartinBot.Integration.Exceptions;
@@ -41,6 +42,32 @@ public sealed class ExmoClient : IExmoService
             ask: ParseDecimal(node, "sell_price"),
             last: ParseDecimal(node, "last_trade"),
             updatedAt: DateTimeOffset.FromUnixTimeSeconds(node.GetProperty("updated").GetInt64()));
+    }
+
+    public async Task<IReadOnlyList<Candle>> GetCandlesHistoryAsync(string pair, string resolution,
+        DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
+    {
+        var fromSec = from.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+        var toSec = to.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+        var path = $"candles_history?symbol={Uri.EscapeDataString(pair)}&resolution={Uri.EscapeDataString(resolution)}&from={fromSec}&to={toSec}";
+        _logger.LogDebug($"EXMO candles_history request {pair} {resolution} {from:o}..{to:o}");
+
+        using var doc = await GetPublicAsync(path, ct).ConfigureAwait(false);
+        if (!doc.RootElement.TryGetProperty("candles", out var candlesNode) || candlesNode.ValueKind != JsonValueKind.Array)
+            throw new ExmoApiException($"Unexpected candles_history payload for {pair}");
+
+        var result = new List<Candle>(candlesNode.GetArrayLength());
+        foreach (var c in candlesNode.EnumerateArray())
+        {
+            result.Add(new Candle(
+                timestamp: DateTimeOffset.FromUnixTimeMilliseconds(c.GetProperty("t").GetInt64()),
+                open: ParseDecimal(c, "o"),
+                high: ParseDecimal(c, "h"),
+                low: ParseDecimal(c, "l"),
+                close: ParseDecimal(c, "c"),
+                volume: ParseDecimal(c, "v")));
+        }
+        return result;
     }
 
     public async Task<IReadOnlyDictionary<string, decimal>> GetBalancesAsync(CancellationToken ct = default)

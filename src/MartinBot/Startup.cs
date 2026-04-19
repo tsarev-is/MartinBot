@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MartinBot.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,12 @@ public sealed class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddDomain(_configuration);
-        services.AddControllers();
+        services
+            .AddControllers()
+            .AddJsonOptions(o =>
+        {
+            o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
         services.AddHealthChecks();
         services.AddSwagger();
     }

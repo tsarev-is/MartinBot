@@ -40,13 +40,13 @@ public sealed class BotContextTests
 
         await using (var ctx = new BotContext(_options))
         {
-            ctx.Orders.Add(order);
+            ctx.AddOrder(order);
             await ctx.SaveChangesAsync();
         }
 
         await using (var ctx = new BotContext(_options))
         {
-            var loaded = await ctx.Orders.SingleAsync();
+            var loaded = (await ctx.ListOrdersAsync()).Single();
             Assert.That(loaded.ClientId, Is.EqualTo("c-1"));
             Assert.That(loaded.ExmoOrderId, Is.EqualTo(42L));
             Assert.That(loaded.Pair, Is.EqualTo("BTC_USD"));
@@ -65,9 +65,9 @@ public sealed class BotContextTests
         var now = DateTimeOffset.UtcNow;
 
         using var ctx = new BotContext(_options);
-        ctx.Orders.Add(new OrderEntity(0, "dup", null, "BTC_USD", OrderSide.Buy, 1m, 1m, 0m,
+        ctx.AddOrder(new OrderEntity(0, "dup", null, "BTC_USD", OrderSide.Buy, 1m, 1m, 0m,
             OrderStatus.Pending, now, now));
-        ctx.Orders.Add(new OrderEntity(0, "dup", null, "ETH_USD", OrderSide.Sell, 2m, 1m, 0m,
+        ctx.AddOrder(new OrderEntity(0, "dup", null, "ETH_USD", OrderSide.Sell, 2m, 1m, 0m,
             OrderStatus.Pending, now, now));
 
         Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
@@ -80,14 +80,15 @@ public sealed class BotContextTests
 
         await using (var ctx = new BotContext(_options))
         {
-            ctx.ApiState.Add(new ApiStateEntity("exmo.nonce", 1738000000123L, now));
+            ctx.AddApiState(new ApiStateEntity("exmo.nonce", 1738000000123L, now));
             await ctx.SaveChangesAsync();
         }
 
         await using (var ctx = new BotContext(_options))
         {
-            var entry = await ctx.ApiState.SingleAsync(s => s.Key == "exmo.nonce");
-            Assert.That(entry.Value, Is.EqualTo(1738000000123L));
+            var entry = await ctx.FindApiStateAsync("exmo.nonce");
+            Assert.That(entry, Is.Not.Null);
+            Assert.That(entry!.Value, Is.EqualTo(1738000000123L));
             Assert.That(entry.UpdatedAt, Is.EqualTo(now));
         }
     }
