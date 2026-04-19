@@ -122,6 +122,7 @@ CodeCoverage/
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
 
 # ---------- Docker / misc ----------
 *.env

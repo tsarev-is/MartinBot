@@ -1,3 +1,6 @@
+using MartinBot.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
 namespace MartinBot;
 
 public sealed class Startup
@@ -19,6 +22,9 @@ public sealed class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        using (var scope = app.ApplicationServices.CreateScope())
+            scope.ServiceProvider.GetRequiredService<BotContext>().Database.Migrate();
+
         if (env.IsDevelopment())
         {
             app.UseSwaggerAtRoot();
