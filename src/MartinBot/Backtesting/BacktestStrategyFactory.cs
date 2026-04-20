@@ -11,12 +11,16 @@ namespace MartinBot.Backtesting;
 public sealed class BacktestStrategyFactory
 {
     public const string BuyAndHold = "buy_and_hold";
+    public const string DcaMeanReversion = "dca_mr";
 
     public IStrategy Create(string name, BacktestRequest request)
     {
         return name switch
         {
             BuyAndHold => new BuyAndHoldStrategy(request.FeeBps, request.SlippageBps),
+            DcaMeanReversion => new DcaMeanReversionStrategy(request.FeeBps, request.SlippageBps, request.InitialCash,
+                emaPeriod: 200, rsiPeriod: 14, entryRsi: 30m, exitRsi: 50m,
+                maxTranches: 3, trancheFraction: 0.25m, dcaDropPct: 0.03m, stopLossPct: 0.10m),
             _ => throw new ArgumentException($"Unknown strategy: {name}")
         };
     }

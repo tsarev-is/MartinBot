@@ -47,19 +47,45 @@ public sealed class ExmoClient : IExmoService
     public async Task<IReadOnlyList<Candle>> GetCandlesHistoryAsync(string pair, string resolution,
         DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
     {
+        // EXMO caps /candles_history at ~3000 candles per response; paginate by time to cover longer ranges.
+        var candleSpan = ResolutionToTimeSpan(resolution);
+        var chunkSpan = candleSpan * 2500;
+
+        var result = new List<Candle>();
+        var seenTimestamps = new HashSet<long>();
+        var cursor = from;
+        while (cursor < to)
+        {
+            var chunkTo = cursor + chunkSpan < to ? cursor + chunkSpan : to;
+            foreach (var candle in await FetchCandlesChunkAsync(pair, resolution, cursor, chunkTo, ct).ConfigureAwait(false))
+            {
+                if (seenTimestamps.Add(candle.Timestamp.ToUnixTimeMilliseconds()))
+                    result.Add(candle);
+            }
+            cursor = chunkTo;
+        }
+        return result;
+    }
+
+    private async Task<IReadOnlyList<Candle>> FetchCandlesChunkAsync(string pair, string resolution,
+        DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
+    {
         var fromSec = from.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
         var toSec = to.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
         var path = $"candles_history?symbol={Uri.EscapeDataString(pair)}&resolution={Uri.EscapeDataString(resolution)}&from={fromSec}&to={toSec}";
         _logger.LogDebug($"EXMO candles_history request {pair} {resolution} {from:o}..{to:o}");
 
-        using var doc = await GetPublicAsync(path, ct).ConfigureAwait(false);
+        using var response = await _http.GetAsync(path, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        using var doc = JsonDocument.Parse(body);
         if (!doc.RootElement.TryGetProperty("candles", out var candlesNode) || candlesNode.ValueKind != JsonValueKind.Array)
-            throw new ExmoApiException($"Unexpected candles_history payload for {pair}");
+            throw new ExmoApiException($"Unexpected candles_history payload for {pair} {from:o}..{to:o}: {body}");
 
-        var result = new List<Candle>(candlesNode.GetArrayLength());
+        var chunk = new List<Candle>(candlesNode.GetArrayLength());
         foreach (var c in candlesNode.EnumerateArray())
         {
-            result.Add(new Candle(
+            chunk.Add(new Candle(
                 timestamp: DateTimeOffset.FromUnixTimeMilliseconds(c.GetProperty("t").GetInt64()),
                 open: ParseDecimal(c, "o"),
                 high: ParseDecimal(c, "h"),
@@ -67,7 +93,20 @@ public sealed class ExmoClient : IExmoService
                 close: ParseDecimal(c, "c"),
                 volume: ParseDecimal(c, "v")));
         }
-        return result;
+        return chunk;
+    }
+
+    private static TimeSpan ResolutionToTimeSpan(string resolution)
+    {
+        if (int.TryParse(resolution, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes) && minutes > 0)
+            return TimeSpan.FromMinutes(minutes);
+        return resolution.ToUpperInvariant() switch
+        {
+            "D" => TimeSpan.FromDays(1),
+            "W" => TimeSpan.FromDays(7),
+            "M" => TimeSpan.FromDays(30),
+            _ => throw new ArgumentException($"Unknown EXMO resolution: {resolution}")
+        };
     }
 
     public async Task<IReadOnlyDictionary<string, decimal>> GetBalancesAsync(CancellationToken ct = default)
