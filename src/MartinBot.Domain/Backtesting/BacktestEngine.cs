@@ -36,7 +36,7 @@ public sealed class BacktestEngine
             }
         }
 
-        var metrics = Metrics.Compute(equityCurve, portfolio.Fills, request.InitialCash);
+        var metrics = Metrics.Compute(equityCurve, portfolio.Fills, request.InitialCash, request.Timeframe);
         return new BacktestResult(
             initialCash: request.InitialCash,
             finalEquity: portfolio.Equity,

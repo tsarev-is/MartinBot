@@ -26,9 +26,13 @@ public static class DomainOptions
         });
 
         services.AddSingleton<BacktestQueue>();
+        services.AddSingleton<ParameterSweepQueue>();
+        services.AddSingleton<WalkForwardQueue>();
         services.AddSingleton<BacktestStrategyFactory>();
         services.AddScoped<BacktestEngine>();
         services.AddHostedService<BacktestRunnerService>();
+        services.AddHostedService<ParameterSweepRunnerService>();
+        services.AddHostedService<WalkForwardRunnerService>();
 
         return services;
     }

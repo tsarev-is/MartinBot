@@ -8,7 +8,8 @@ public sealed class BacktestRunEntity
 {
     public BacktestRunEntity(long id, string pair, string timeframe, DateTimeOffset from, DateTimeOffset to,
         decimal initialCash, decimal feeBps, decimal slippageBps, string strategyName,
-        BacktestRunStatus status, decimal? finalEquity, decimal? totalReturn, decimal? maxDrawdown,
+        string? strategyParametersJson, BacktestRunStatus status,
+        decimal? finalEquity, decimal? totalReturn, decimal? maxDrawdown,
         decimal? sharpe, int? tradeCount, decimal? winRate, string? errorMessage,
         DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
@@ -21,6 +22,7 @@ public sealed class BacktestRunEntity
         FeeBps = feeBps;
         SlippageBps = slippageBps;
         StrategyName = strategyName;
+        StrategyParametersJson = strategyParametersJson;
         Status = status;
         FinalEquity = finalEquity;
         TotalReturn = totalReturn;
@@ -50,6 +52,8 @@ public sealed class BacktestRunEntity
     public decimal SlippageBps { get; private set; }
 
     public string StrategyName { get; private set; }
+
+    public string? StrategyParametersJson { get; private set; }
 
     public BacktestRunStatus Status { get; private set; }
 

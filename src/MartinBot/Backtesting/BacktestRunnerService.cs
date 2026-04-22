@@ -66,7 +66,8 @@ public sealed class BacktestRunnerService : BackgroundService
 
             var request = new BacktestRequest(run.Pair, run.Timeframe, run.From, run.To,
                 run.InitialCash, run.FeeBps, run.SlippageBps);
-            var strategy = factory.Create(run.StrategyName, request);
+            var parameters = StrategyParametersSerializer.Deserialize(run.StrategyParametersJson);
+            var strategy = factory.Create(run.StrategyName, request, parameters);
             var result = engine.Run(request, candles, strategy);
 
             run.MarkSucceeded(result.FinalEquity, result.TotalReturn, result.MaxDrawdown, result.Sharpe,
@@ -77,11 +78,15 @@ public sealed class BacktestRunnerService : BackgroundService
             if (result.DroppedIntents > 0)
                 _logger.LogWarning($"Backtest run {runId}: {result.DroppedIntents} strategy intent(s) discarded by affordability guard — observed fills do not reflect full strategy output");
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Backtest run {runId} failed");
             run.MarkFailed(ex.Message, DateTimeOffset.UtcNow);
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(CancellationToken.None);
         }
     }
 }

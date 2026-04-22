@@ -35,7 +35,7 @@ public sealed class DcaMeanReversionStrategyTests
 
     private static BacktestRequest MakeRequest(IReadOnlyList<Candle> candles, decimal initialCash = 1_000m)
     {
-        return new BacktestRequest("BTC_USD", "h1", candles[0].Timestamp, candles[^1].Timestamp,
+        return new BacktestRequest("BTC_USD", "60", candles[0].Timestamp, candles[^1].Timestamp,
             initialCash, feeBps: 0m, slippageBps: 0m);
     }
 

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MartinBot.Domain;
+using MartinBot.Domain.Backtesting;
 using MartinBot.Domain.Backtesting.Models;
 using MartinBot.Domain.Models;
 using MartinBot.Integration.Configuration;
@@ -48,7 +49,7 @@ public sealed class ExmoClient : IExmoService
         DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
     {
         // EXMO caps /candles_history at ~3000 candles per response; paginate by time to cover longer ranges.
-        var candleSpan = ResolutionToTimeSpan(resolution);
+        var candleSpan = TimeframeConverter.ToTimeSpan(resolution);
         var chunkSpan = candleSpan * 2500;
 
         var result = new List<Candle>();
@@ -94,19 +95,6 @@ public sealed class ExmoClient : IExmoService
                 volume: ParseDecimal(c, "v")));
         }
         return chunk;
-    }
-
-    private static TimeSpan ResolutionToTimeSpan(string resolution)
-    {
-        if (int.TryParse(resolution, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes) && minutes > 0)
-            return TimeSpan.FromMinutes(minutes);
-        return resolution.ToUpperInvariant() switch
-        {
-            "D" => TimeSpan.FromDays(1),
-            "W" => TimeSpan.FromDays(7),
-            "M" => TimeSpan.FromDays(30),
-            _ => throw new ArgumentException($"Unknown EXMO resolution: {resolution}")
-        };
     }
 
     public async Task<IReadOnlyDictionary<string, decimal>> GetBalancesAsync(CancellationToken ct = default)

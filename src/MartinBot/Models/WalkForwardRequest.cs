@@ -1,10 +1,11 @@
 namespace MartinBot.Models;
 
-public sealed class BacktestRunRequest
+public sealed class WalkForwardRequest
 {
-    public BacktestRunRequest(string pair, string timeframe, DateTimeOffset from, DateTimeOffset to,
+    public WalkForwardRequest(string pair, string timeframe, DateTimeOffset from, DateTimeOffset to,
         decimal initialCash, decimal feeBps, decimal slippageBps, string? strategyName,
-        IReadOnlyDictionary<string, decimal>? strategyParameters = null)
+        Dictionary<string, decimal[]>? parameterGrid, string? optimizationMetric,
+        int trainDays, int testDays, int stepDays)
     {
         Pair = pair;
         Timeframe = timeframe;
@@ -14,7 +15,11 @@ public sealed class BacktestRunRequest
         FeeBps = feeBps;
         SlippageBps = slippageBps;
         StrategyName = strategyName;
-        StrategyParameters = strategyParameters;
+        ParameterGrid = parameterGrid;
+        OptimizationMetric = optimizationMetric;
+        TrainDays = trainDays;
+        TestDays = testDays;
+        StepDays = stepDays;
     }
 
     public string Pair { get; }
@@ -33,5 +38,13 @@ public sealed class BacktestRunRequest
 
     public string? StrategyName { get; }
 
-    public IReadOnlyDictionary<string, decimal>? StrategyParameters { get; }
+    public Dictionary<string, decimal[]>? ParameterGrid { get; }
+
+    public string? OptimizationMetric { get; }
+
+    public int TrainDays { get; }
+
+    public int TestDays { get; }
+
+    public int StepDays { get; }
 }

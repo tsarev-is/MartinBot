@@ -28,7 +28,7 @@ public sealed class BacktestEngineTests
     public void BuyAndHold_NoFeeNoSlip_FullyInvested_ReturnsPriceRatio()
     {
         var candles = MakeCandles(100m, 120m, 110m, 150m);
-        var request = new BacktestRequest("BTC_USD", "h1", candles[0].Timestamp, candles[^1].Timestamp,
+        var request = new BacktestRequest("BTC_USD", "60", candles[0].Timestamp, candles[^1].Timestamp,
             initialCash: 1_000m, feeBps: 0m, slippageBps: 0m);
 
         var result = new BacktestEngine().Run(request, candles, new BuyAndHoldStrategy(0m, 0m));
@@ -50,7 +50,7 @@ public sealed class BacktestEngineTests
         };
 
         var strategy = new SingleLimitStrategy(new OrderIntent(OrderSide.Buy, 1m, limitPrice: 98m));
-        var request = new BacktestRequest("BTC_USD", "h1", ts, ts.AddHours(1),
+        var request = new BacktestRequest("BTC_USD", "60", ts, ts.AddHours(1),
             initialCash: 500m, feeBps: 0m, slippageBps: 0m);
 
         var result = new BacktestEngine().Run(request, candles, strategy);
@@ -63,7 +63,7 @@ public sealed class BacktestEngineTests
     [Test]
     public void NoCandles_ReturnsInitialCash_NoTrades()
     {
-        var request = new BacktestRequest("BTC_USD", "h1", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch,
+        var request = new BacktestRequest("BTC_USD", "60", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch,
             initialCash: 1_000m, feeBps: 30m, slippageBps: 20m);
 
         var result = new BacktestEngine().Run(request, Array.Empty<Candle>(), new BuyAndHoldStrategy(30m, 20m));
@@ -78,7 +78,7 @@ public sealed class BacktestEngineTests
     {
         var candles = MakeCandles(100m, 110m);
         var strategy = new SingleLimitStrategy(new OrderIntent(OrderSide.Buy, 1_000m, limitPrice: null));
-        var request = new BacktestRequest("BTC_USD", "h1", candles[0].Timestamp, candles[^1].Timestamp,
+        var request = new BacktestRequest("BTC_USD", "60", candles[0].Timestamp, candles[^1].Timestamp,
             initialCash: 50m, feeBps: 30m, slippageBps: 20m);
 
         var result = new BacktestEngine().Run(request, candles, strategy);
@@ -100,7 +100,7 @@ public sealed class BacktestEngineTests
             new(ts.AddHours(3), 60m, 60m, 60m, 60m, 0m),
         };
 
-        var request = new BacktestRequest("BTC_USD", "h1", ts, ts.AddHours(3),
+        var request = new BacktestRequest("BTC_USD", "60", ts, ts.AddHours(3),
             initialCash: 100m, feeBps: 0m, slippageBps: 0m);
 
         var result = new BacktestEngine().Run(request, candles, new BuyAndHoldStrategy(0m, 0m));

@@ -6,6 +6,9 @@ namespace MartinBot.Tests.Backtesting;
 
 public sealed class MetricsTests
 {
+    private const string HourlyTimeframe = "60";
+    private const string DailyTimeframe = "D";
+
     private static IReadOnlyList<EquityPoint> Curve(params decimal[] values)
     {
         var origin = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
@@ -18,7 +21,7 @@ public sealed class MetricsTests
     [Test]
     public void MaxDrawdown_PeakThenHalved_Is50Percent()
     {
-        var m = Metrics.Compute(Curve(100m, 120m, 60m, 90m), Array.Empty<Fill>(), 100m);
+        var m = Metrics.Compute(Curve(100m, 120m, 60m, 90m), Array.Empty<Fill>(), 100m, HourlyTimeframe);
 
         Assert.That(m.MaxDrawdown, Is.EqualTo(0.5m).Within(0.0001m));
     }
@@ -26,7 +29,7 @@ public sealed class MetricsTests
     [Test]
     public void TotalReturn_TrackesFinalEquityMinusInitial()
     {
-        var m = Metrics.Compute(Curve(100m, 120m, 150m), Array.Empty<Fill>(), 100m);
+        var m = Metrics.Compute(Curve(100m, 120m, 150m), Array.Empty<Fill>(), 100m, HourlyTimeframe);
 
         Assert.That(m.TotalReturn, Is.EqualTo(0.5m).Within(0.0001m));
     }
@@ -34,7 +37,7 @@ public sealed class MetricsTests
     [Test]
     public void FlatEquity_HasZeroDrawdownAndZeroSharpe()
     {
-        var m = Metrics.Compute(Curve(100m, 100m, 100m), Array.Empty<Fill>(), 100m);
+        var m = Metrics.Compute(Curve(100m, 100m, 100m), Array.Empty<Fill>(), 100m, HourlyTimeframe);
 
         Assert.That(m.MaxDrawdown, Is.EqualTo(0m));
         Assert.That(m.Sharpe, Is.EqualTo(0m));
@@ -53,7 +56,7 @@ public sealed class MetricsTests
             new Fill(ts.AddHours(3), OrderSide.Sell, 90m, 1m, 0m),
         };
 
-        var m = Metrics.Compute(Curve(100m, 100m, 100m, 100m, 100m), fills, 100m);
+        var m = Metrics.Compute(Curve(100m, 100m, 100m, 100m, 100m), fills, 100m, HourlyTimeframe);
 
         Assert.That(m.WinRate, Is.EqualTo(0.5m).Within(0.0001m));
     }
@@ -61,11 +64,23 @@ public sealed class MetricsTests
     [Test]
     public void EmptyCurve_ReturnsZeroEverything()
     {
-        var m = Metrics.Compute(Array.Empty<EquityPoint>(), Array.Empty<Fill>(), 100m);
+        var m = Metrics.Compute(Array.Empty<EquityPoint>(), Array.Empty<Fill>(), 100m, HourlyTimeframe);
 
         Assert.That(m.TotalReturn, Is.EqualTo(0m));
         Assert.That(m.MaxDrawdown, Is.EqualTo(0m));
         Assert.That(m.Sharpe, Is.EqualTo(0m));
         Assert.That(m.WinRate, Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void Sharpe_HourlyIsHigherThanDaily_ForSameReturnSeries()
+    {
+        var curve = Curve(100m, 101m, 100m, 101m, 100m, 101m, 100m, 101m);
+
+        var hourly = Metrics.Compute(curve, Array.Empty<Fill>(), 100m, HourlyTimeframe);
+        var daily = Metrics.Compute(curve, Array.Empty<Fill>(), 100m, DailyTimeframe);
+
+        Assert.That(hourly.Sharpe, Is.GreaterThan(daily.Sharpe),
+            "for the same per-period return series, the higher-frequency timeframe annualizes to a larger Sharpe");
     }
 }

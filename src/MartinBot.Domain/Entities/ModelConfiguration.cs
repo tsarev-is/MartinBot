@@ -32,4 +32,41 @@ public static class ModelConfiguration
         run.Property(r => r.Timeframe).IsRequired();
         run.Property(r => r.StrategyName).IsRequired();
     }
+
+    public static void ConfigureParameterSweepRun(ModelBuilder modelBuilder)
+    {
+        var run = modelBuilder.Entity<ParameterSweepRunEntity>();
+        run.HasKey(r => r.Id);
+        run.Property(r => r.Id).ValueGeneratedOnAdd();
+        run.Property(r => r.Pair).IsRequired();
+        run.Property(r => r.Timeframe).IsRequired();
+        run.Property(r => r.StrategyName).IsRequired();
+        run.Property(r => r.OptimizationMetric).HasConversion<int>();
+        run.Property(r => r.Status).HasConversion<int>();
+    }
+
+    public static void ConfigureWalkForwardRun(ModelBuilder modelBuilder)
+    {
+        var run = modelBuilder.Entity<WalkForwardRunEntity>();
+        run.HasKey(r => r.Id);
+        run.Property(r => r.Id).ValueGeneratedOnAdd();
+        run.Property(r => r.Pair).IsRequired();
+        run.Property(r => r.Timeframe).IsRequired();
+        run.Property(r => r.StrategyName).IsRequired();
+        run.Property(r => r.OptimizationMetric).HasConversion<int>();
+        run.Property(r => r.Status).HasConversion<int>();
+        run.HasMany(r => r.Windows)
+            .WithOne()
+            .HasForeignKey(w => w.RunId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    public static void ConfigureWalkForwardWindow(ModelBuilder modelBuilder)
+    {
+        var window = modelBuilder.Entity<WalkForwardWindowEntity>();
+        window.HasKey(w => w.Id);
+        window.Property(w => w.Id).ValueGeneratedOnAdd();
+        window.Property(w => w.BestParametersJson).IsRequired();
+        window.HasIndex(w => w.RunId);
+    }
 }

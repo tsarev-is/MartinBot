@@ -6,14 +6,14 @@ namespace MartinBot.Domain.Backtesting;
 public static class Metrics
 {
     public static ComputedMetrics Compute(IReadOnlyList<EquityPoint> curve, IReadOnlyList<Fill> fills,
-        decimal initialCash)
+        decimal initialCash, string timeframe)
     {
         if (curve.Count == 0)
             return new ComputedMetrics(0m, 0m, 0m, 0m);
 
         var totalReturn = initialCash == 0m ? 0m : (curve[^1].Equity - initialCash) / initialCash;
         var maxDrawdown = ComputeMaxDrawdown(curve);
-        var sharpe = ComputeSharpe(curve);
+        var sharpe = ComputeSharpe(curve, TimeframeConverter.PeriodsPerYear(timeframe));
         var winRate = ComputeWinRate(fills);
         return new ComputedMetrics(totalReturn, maxDrawdown, sharpe, winRate);
     }
@@ -35,7 +35,7 @@ public static class Metrics
         return maxDd;
     }
 
-    private static decimal ComputeSharpe(IReadOnlyList<EquityPoint> curve)
+    private static decimal ComputeSharpe(IReadOnlyList<EquityPoint> curve, double periodsPerYear)
     {
         if (curve.Count < 2)
             return 0m;
@@ -57,7 +57,7 @@ public static class Metrics
         var std = Math.Sqrt(variance);
         if (std == 0d)
             return 0m;
-        return (decimal)(mean / std * Math.Sqrt(returns.Count));
+        return (decimal)(mean / std * Math.Sqrt(periodsPerYear));
     }
 
     private static decimal ComputeWinRate(IReadOnlyList<Fill> fills)
