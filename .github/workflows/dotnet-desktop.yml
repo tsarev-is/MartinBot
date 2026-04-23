@@ -10,11 +10,6 @@ jobs:
   build:
     runs-on: [self-hosted]
 
-    strategy:
-      fail-fast: false
-      matrix:
-        configuration: [Debug, Release]
-
     defaults:
       run:
         working-directory: src
@@ -34,15 +29,15 @@ jobs:
         run: dotnet restore MartinBot.sln
 
       - name: Build
-        run: dotnet build MartinBot.sln --configuration ${{ matrix.configuration }} --no-restore
+        run: dotnet build MartinBot.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test MartinBot.sln --configuration ${{ matrix.configuration }} --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+        run: dotnet test MartinBot.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.configuration }}
+          name: test-results
           path: src/TestResults/**/*.trx
           if-no-files-found: ignore
