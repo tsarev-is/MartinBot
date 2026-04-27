@@ -14,6 +14,7 @@ public sealed class BacktestStrategyFactory
 {
     public const string BuyAndHold = "buy_and_hold";
     public const string DcaMeanReversion = "dca_mr";
+    public const string Grid = "grid";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, decimal>> DefaultsByStrategy =
         new Dictionary<string, IReadOnlyDictionary<string, decimal>>(StringComparer.Ordinal)
@@ -29,6 +30,16 @@ public sealed class BacktestStrategyFactory
                 ["trancheFraction"] = 0.25m,
                 ["dcaDropPct"] = 0.03m,
                 ["stopLossPct"] = 0.10m
+            },
+            [Grid] = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["channelLookback"] = 100m,
+                ["gridLevels"] = 10m,
+                ["gridBudgetFraction"] = 0.5m,
+                ["invalidationPct"] = 0.02m,
+                ["lowQuantile"] = 0.10m,
+                ["highQuantile"] = 0.90m,
+                ["cooldownCandles"] = 24m
             }
         };
 
@@ -36,7 +47,8 @@ public sealed class BacktestStrategyFactory
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
         {
             [BuyAndHold] = Array.Empty<string>(),
-            [DcaMeanReversion] = new[] { "emaPeriod", "rsiPeriod", "maxTranches" }
+            [DcaMeanReversion] = new[] { "emaPeriod", "rsiPeriod", "maxTranches" },
+            [Grid] = new[] { "channelLookback", "gridLevels", "cooldownCandles" }
         };
 
     public IReadOnlyDictionary<string, decimal> GetDefaults(string strategyName)
@@ -65,6 +77,11 @@ public sealed class BacktestStrategyFactory
                 entryRsi: Get("entryRsi"), exitRsi: Get("exitRsi"),
                 maxTranches: (int)Get("maxTranches"), trancheFraction: Get("trancheFraction"),
                 dcaDropPct: Get("dcaDropPct"), stopLossPct: Get("stopLossPct")),
+            Grid => new GridStrategy(request.FeeBps, request.SlippageBps, request.InitialCash,
+                channelLookback: (int)Get("channelLookback"), gridLevels: (int)Get("gridLevels"),
+                gridBudgetFraction: Get("gridBudgetFraction"), invalidationPct: Get("invalidationPct"),
+                lowQuantile: Get("lowQuantile"), highQuantile: Get("highQuantile"),
+                cooldownCandles: (int)Get("cooldownCandles")),
             _ => throw new ArgumentException($"Unknown strategy: {name}")
         };
     }

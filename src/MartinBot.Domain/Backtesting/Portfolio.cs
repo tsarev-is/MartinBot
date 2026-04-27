@@ -42,6 +42,9 @@ public sealed class Portfolio : IPortfolioView
 
     public void RemoveLimit(OrderIntent intent) => _openLimits.Remove(intent);
 
+    /// <inheritdoc />
+    public void Cancel(OrderIntent intent) => _openLimits.Remove(intent);
+
     public void ApplyFill(Fill fill)
     {
         var notional = fill.Price * fill.Quantity;

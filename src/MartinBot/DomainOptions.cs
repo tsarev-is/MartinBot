@@ -2,6 +2,7 @@ using MartinBot.Backtesting;
 using MartinBot.Configuration;
 using MartinBot.Domain;
 using MartinBot.Domain.Backtesting;
+using MartinBot.Domain.Backtesting.RegimeSelector;
 using MartinBot.Domain.Entities;
 using MartinBot.Integration;
 using MartinBot.Integration.Configuration;
@@ -16,6 +17,14 @@ public static class DomainOptions
     {
         services.Configure<ExmoSettings>(config.GetSection("Exmo"));
         services.AddSingleton<IConfigureOptions<ExmoOptions>, ConfigureExmoOptions>();
+
+        services.Configure<RegimeSelectorSettings>(config.GetSection("RegimeSelector"));
+        services.AddSingleton<IConfigureOptions<RegimeSelectorOptions>, ConfigureRegimeSelectorOptions>();
+        services.AddSingleton<IRegimeSelector>(sp =>
+        {
+            var o = sp.GetRequiredService<IOptions<RegimeSelectorOptions>>().Value;
+            return new TrendDownPauseSelector(o.EmaShortPeriod, o.EmaLongPeriod, o.AdxPeriod, o.AdxThreshold);
+        });
 
         services.AddDbContext<BotContext>(o => o.UseSqlite(config.GetConnectionString("Bot")));
 

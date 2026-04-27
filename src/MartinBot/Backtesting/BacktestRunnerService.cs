@@ -1,7 +1,11 @@
+using MartinBot.Configuration;
 using MartinBot.Domain;
 using MartinBot.Domain.Backtesting;
 using MartinBot.Domain.Backtesting.Models;
+using MartinBot.Domain.Backtesting.RegimeSelector;
+using MartinBot.Domain.Backtesting.Strategies;
 using MartinBot.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace MartinBot.Backtesting;
 
@@ -10,13 +14,18 @@ public sealed class BacktestRunnerService : BackgroundService
     private readonly BacktestQueue _queue;
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<BacktestRunnerService> _logger;
+    private readonly IRegimeSelector _selector;
+    private readonly RegimeSelectorOptions _selectorOptions;
 
     public BacktestRunnerService(BacktestQueue queue, IServiceScopeFactory scopes,
-        ILogger<BacktestRunnerService> logger)
+        ILogger<BacktestRunnerService> logger, IRegimeSelector selector,
+        IOptions<RegimeSelectorOptions> selectorOptions)
     {
         _queue = queue;
         _scopes = scopes;
         _logger = logger;
+        _selector = selector;
+        _selectorOptions = selectorOptions.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,7 +76,23 @@ public sealed class BacktestRunnerService : BackgroundService
             var request = new BacktestRequest(run.Pair, run.Timeframe, run.From, run.To,
                 run.InitialCash, run.FeeBps, run.SlippageBps);
             var parameters = StrategyParametersSerializer.Deserialize(run.StrategyParametersJson);
-            var strategy = factory.Create(run.StrategyName, request, parameters);
+
+            // Regime selector (docs/strategies.md §6). Single-run mode has no train/test split,
+            // so the selector inspects the full slice — acceptable for the debugging surface;
+            // walk-forward is the production path for strictly causal regime gating.
+            IStrategy strategy;
+            if (_selectorOptions.Enabled)
+            {
+                var decision = _selector.Decide(candles);
+                _logger.LogInformation($"Backtest run {runId} regime: {decision.Reason}");
+                strategy = decision.ShouldPause
+                    ? new NoOpStrategy()
+                    : factory.Create(run.StrategyName, request, parameters);
+            }
+            else
+            {
+                strategy = factory.Create(run.StrategyName, request, parameters);
+            }
             var result = engine.Run(request, candles, strategy);
 
             run.MarkSucceeded(result.FinalEquity, result.TotalReturn, result.MaxDrawdown, result.Sharpe,

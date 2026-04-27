@@ -182,4 +182,94 @@ public sealed class BacktestStrategyFactoryTests
         Assert.Throws<ArgumentException>(
             () => factory.Create(BacktestStrategyFactory.DcaMeanReversion, MakeRequest(), parameters));
     }
+
+    [Test]
+    public void Create_Grid_NullParameters_ReturnsGridStrategy()
+    {
+        var factory = new BacktestStrategyFactory();
+
+        var strategy = factory.Create(BacktestStrategyFactory.Grid, MakeRequest(), parameters: null);
+
+        Assert.That(strategy, Is.InstanceOf<GridStrategy>());
+    }
+
+    [Test]
+    public void GetDefaults_Grid_ContainsAllKnownKeys()
+    {
+        var factory = new BacktestStrategyFactory();
+
+        var defaults = factory.GetDefaults(BacktestStrategyFactory.Grid);
+
+        Assert.That(defaults.Keys, Is.EquivalentTo(new[]
+        {
+            "channelLookback", "gridLevels", "gridBudgetFraction",
+            "invalidationPct", "lowQuantile", "highQuantile", "cooldownCandles"
+        }));
+        Assert.That(defaults["channelLookback"], Is.EqualTo(100m));
+        Assert.That(defaults["gridLevels"], Is.EqualTo(10m));
+        Assert.That(defaults["gridBudgetFraction"], Is.EqualTo(0.5m));
+        Assert.That(defaults["invalidationPct"], Is.EqualTo(0.02m));
+        Assert.That(defaults["lowQuantile"], Is.EqualTo(0.10m));
+        Assert.That(defaults["highQuantile"], Is.EqualTo(0.90m));
+        Assert.That(defaults["cooldownCandles"], Is.EqualTo(24m));
+    }
+
+    [Test]
+    public void ValidateParameters_Grid_NonIntegerCooldownCandles_Throws()
+    {
+        var factory = new BacktestStrategyFactory();
+        var parameters = new Dictionary<string, decimal> { ["cooldownCandles"] = 12.5m };
+
+        var ex = Assert.Throws<ArgumentException>(
+            () => factory.ValidateParameters(BacktestStrategyFactory.Grid, parameters));
+        Assert.That(ex!.Message, Does.Contain("cooldownCandles"));
+    }
+
+    [Test]
+    public void ValidateParameters_Grid_NonIntegerChannelLookback_Throws()
+    {
+        var factory = new BacktestStrategyFactory();
+        var parameters = new Dictionary<string, decimal> { ["channelLookback"] = 100.5m };
+
+        var ex = Assert.Throws<ArgumentException>(
+            () => factory.ValidateParameters(BacktestStrategyFactory.Grid, parameters));
+        Assert.That(ex!.Message, Does.Contain("channelLookback"));
+    }
+
+    [Test]
+    public void ValidateParameters_Grid_NonIntegerGridLevels_Throws()
+    {
+        var factory = new BacktestStrategyFactory();
+        var parameters = new Dictionary<string, decimal> { ["gridLevels"] = 8.5m };
+
+        var ex = Assert.Throws<ArgumentException>(
+            () => factory.ValidateParameters(BacktestStrategyFactory.Grid, parameters));
+        Assert.That(ex!.Message, Does.Contain("gridLevels"));
+    }
+
+    [Test]
+    public void ValidateParameters_Grid_UnknownKey_Throws()
+    {
+        var factory = new BacktestStrategyFactory();
+        var parameters = new Dictionary<string, decimal> { ["typo"] = 1m };
+
+        var ex = Assert.Throws<ArgumentException>(
+            () => factory.ValidateParameters(BacktestStrategyFactory.Grid, parameters));
+        Assert.That(ex!.Message, Does.Contain("typo"));
+    }
+
+    [Test]
+    public void Create_Grid_PartialOverride_FlowsToStrategy()
+    {
+        var factory = new BacktestStrategyFactory();
+        var parameters = new Dictionary<string, decimal>
+        {
+            ["channelLookback"] = 20m,
+            ["gridLevels"] = 4m
+        };
+
+        var strategy = factory.Create(BacktestStrategyFactory.Grid, MakeRequest(), parameters);
+
+        Assert.That(strategy, Is.InstanceOf<GridStrategy>());
+    }
 }

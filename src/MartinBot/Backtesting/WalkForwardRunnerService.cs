@@ -1,8 +1,12 @@
+using MartinBot.Configuration;
 using MartinBot.Domain;
 using MartinBot.Domain.Backtesting;
 using MartinBot.Domain.Backtesting.Models;
+using MartinBot.Domain.Backtesting.RegimeSelector;
+using MartinBot.Domain.Backtesting.Strategies;
 using MartinBot.Domain.Entities;
 using MartinBot.Domain.Entities.Models;
+using Microsoft.Extensions.Options;
 
 namespace MartinBot.Backtesting;
 
@@ -11,13 +15,18 @@ public sealed class WalkForwardRunnerService : BackgroundService
     private readonly WalkForwardQueue _queue;
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<WalkForwardRunnerService> _logger;
+    private readonly IRegimeSelector _selector;
+    private readonly RegimeSelectorOptions _selectorOptions;
 
     public WalkForwardRunnerService(WalkForwardQueue queue, IServiceScopeFactory scopes,
-        ILogger<WalkForwardRunnerService> logger)
+        ILogger<WalkForwardRunnerService> logger, IRegimeSelector selector,
+        IOptions<RegimeSelectorOptions> selectorOptions)
     {
         _queue = queue;
         _scopes = scopes;
         _logger = logger;
+        _selector = selector;
+        _selectorOptions = selectorOptions.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -105,7 +114,6 @@ public sealed class WalkForwardRunnerService : BackgroundService
                 ct.ThrowIfCancellationRequested();
 
                 var trainSlice = SliceCandles(candles, window.TrainFrom, window.TrainTo);
-                var testSlice = SliceCandles(candles, window.TestFrom, window.TestTo);
 
                 var trainRequest = new BacktestRequest(run.Pair, run.Timeframe, window.TrainFrom, window.TrainTo,
                     run.InitialCash, run.FeeBps, run.SlippageBps);
@@ -125,10 +133,31 @@ public sealed class WalkForwardRunnerService : BackgroundService
                     }
                 }
 
-                var testRequest = new BacktestRequest(run.Pair, run.Timeframe, window.TestFrom, window.TestTo,
+                // Warmup fix (strategies-roadmap-next.md §8a): run the engine on [trainFrom, testTo]
+                // so indicators are primed by the test slice, then extract OOS metrics from the post-testFrom
+                // portion of the resulting equity curve. Keeps train-only grid selection above untouched.
+                var combinedSlice = SliceCandles(candles, window.TrainFrom, window.TestTo);
+                var combinedRequest = new BacktestRequest(run.Pair, run.Timeframe, window.TrainFrom, window.TestTo,
                     run.InitialCash, run.FeeBps, run.SlippageBps);
-                var bestStrategy = factory.Create(run.StrategyName, testRequest, bestCombo);
-                var testResult = engine.Run(testRequest, testSlice, bestStrategy);
+
+                // Regime selector (docs/strategies.md §6, docs/phase6-experiments.md). When enabled
+                // and the train slice classifies as TrendDown, swap to NoOpStrategy for the OOS run.
+                // Selector sees only pre-testFrom candles, so the decision is strictly causal.
+                IStrategy bestStrategy;
+                if (_selectorOptions.Enabled)
+                {
+                    var decision = _selector.Decide(trainSlice);
+                    _logger.LogInformation($"Walk-forward run {runId} window {window.Index} regime: {decision.Reason}");
+                    bestStrategy = decision.ShouldPause
+                        ? new NoOpStrategy()
+                        : factory.Create(run.StrategyName, combinedRequest, bestCombo);
+                }
+                else
+                {
+                    bestStrategy = factory.Create(run.StrategyName, combinedRequest, bestCombo);
+                }
+                var combinedResult = engine.Run(combinedRequest, combinedSlice, bestStrategy);
+                var oos = WalkForwardTestMetrics.Extract(combinedResult, window.TestFrom, run.Timeframe);
 
                 var bestParamsJson = StrategyParametersSerializer.Serialize(bestCombo) ?? "{}";
                 db.AddWalkForwardWindow(new WalkForwardWindowEntity(
@@ -136,13 +165,13 @@ public sealed class WalkForwardRunnerService : BackgroundService
                     trainFrom: window.TrainFrom, trainTo: window.TrainTo,
                     testFrom: window.TestFrom, testTo: window.TestTo,
                     bestParametersJson: bestParamsJson, inSampleMetricValue: bestMetric ?? 0m,
-                    outOfSampleTotalReturn: testResult.TotalReturn,
-                    outOfSampleMaxDrawdown: testResult.MaxDrawdown,
-                    outOfSampleSharpe: testResult.Sharpe,
-                    outOfSampleTradeCount: testResult.TradeCount,
+                    outOfSampleTotalReturn: oos.TotalReturn,
+                    outOfSampleMaxDrawdown: oos.MaxDrawdown,
+                    outOfSampleSharpe: oos.Sharpe,
+                    outOfSampleTradeCount: oos.TradeCount,
                     createdAt: DateTimeOffset.UtcNow));
 
-                oosCurves.Add(testResult.EquityCurve);
+                oosCurves.Add(oos.EquityCurve);
                 completed++;
                 run.RecordProgress(completed, DateTimeOffset.UtcNow);
                 await db.SaveChangesAsync(ct);
