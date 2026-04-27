@@ -18,8 +18,7 @@ public static class DomainOptions
         services.Configure<ExmoSettings>(config.GetSection("Exmo"));
         services.AddSingleton<IConfigureOptions<ExmoOptions>, ConfigureExmoOptions>();
 
-        services.Configure<RegimeSelectorSettings>(config.GetSection("RegimeSelector"));
-        services.AddSingleton<IConfigureOptions<RegimeSelectorOptions>, ConfigureRegimeSelectorOptions>();
+        services.Configure<RegimeSelectorOptions>(config.GetSection("RegimeSelector"));
         services.AddSingleton<IRegimeSelector>(sp =>
         {
             var o = sp.GetRequiredService<IOptions<RegimeSelectorOptions>>().Value;

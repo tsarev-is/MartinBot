@@ -78,8 +78,10 @@ public sealed class BacktestRunnerService : BackgroundService
             var parameters = StrategyParametersSerializer.Deserialize(run.StrategyParametersJson);
 
             // Regime selector (docs/strategies.md §6). Single-run mode has no train/test split,
-            // so the selector inspects the full slice — acceptable for the debugging surface;
-            // walk-forward is the production path for strictly causal regime gating.
+            // so the selector inspects the full slice — this look-ahead is intentional, not a bug:
+            // single-run is a debugging surface for inspecting "would the selector have paused this
+            // window?". The production path for strictly causal regime gating is walk-forward,
+            // where the selector sees only the train slice (pre-test history).
             IStrategy strategy;
             if (_selectorOptions.Enabled)
             {
